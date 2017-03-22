@@ -119,7 +119,7 @@ namespace InputWrapper
         public Wrappers.InputType InputType { get; set; }
         public string SubscriberId { get; set; }
         public string WrapperName { get; set; }
-        public Guid StickGuid { get; set; }
+        public string StickId { get; set; }
         public int InputId { get; set; }
         public dynamic Handler { get; set; }
     }

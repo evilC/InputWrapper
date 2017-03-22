@@ -17,7 +17,7 @@ namespace InputWrappers
             //public Joystick joystick;
             //static private DirectInput directInput;
 
-            private Dictionary<Guid, SharpDX_DirectInputStickMonitor> MonitoredSticks = new Dictionary<Guid, SharpDX_DirectInputStickMonitor>();
+            private Dictionary<Guid, StickMonitor> MonitoredSticks = new Dictionary<Guid,StickMonitor>();
 
             public SharpDX_DirectInput()
             {
@@ -30,11 +30,12 @@ namespace InputWrappers
             public bool Subscribe(SubscriptionRequest subReq)
             {
                 //callback = passedCallback;
-                if (!MonitoredSticks.ContainsKey(subReq.StickGuid))
+                var guid = new Guid(subReq.StickId);
+                if (!MonitoredSticks.ContainsKey(guid))
                 {
-                    MonitoredSticks.Add(subReq.StickGuid, new SharpDX_DirectInputStickMonitor(subReq));
+                    MonitoredSticks.Add(guid, new StickMonitor(subReq));
                 }
-                MonitoredSticks[subReq.StickGuid].Add(subReq);
+                MonitoredSticks[guid].Add(subReq);
                 return true;
             }
 
@@ -105,15 +106,33 @@ namespace InputWrappers
                 }
             };
 
-            public class SharpDX_DirectInputStickMonitor : StickMonitor
+
+            // Subscription Handling
+            public class StickMonitor
             {
                 public Joystick joystick;
                 static private DirectInput directInput;
                 private Dictionary<JoystickOffset, InputMonitor> inputMonitors = new Dictionary<JoystickOffset, InputMonitor>();
 
-                public SharpDX_DirectInputStickMonitor(SubscriptionRequest subReq)
-                {
+                private Guid stickGuid;
 
+                public StickMonitor(SubscriptionRequest subReq)
+                {
+                    directInput = new DirectInput();
+                    stickGuid = new Guid(subReq.StickId);
+                    joystick = new Joystick(directInput, stickGuid);
+                    joystick.Properties.BufferSize = 128;
+                    joystick.Acquire();
+                }
+
+                public void Add(SubscriptionRequest subReq)
+                {
+                    var inputId = GetInputIdentifier(subReq.InputType, subReq.InputId);
+                    if (!inputMonitors.ContainsKey(inputId))
+                    {
+                        inputMonitors.Add(inputId, new InputMonitor());
+                    }
+                    inputMonitors[inputId].Add(subReq);
                 }
 
                 private JoystickOffset GetInputIdentifier(InputType inputType, int inputId)
@@ -133,39 +152,8 @@ namespace InputWrappers
                             inputMonitors[state.Offset].ProcessPollResult(state.Value);
                         }
                     }
+
                 }
-            }
-
-            // Subscription Handling
-            public class StickMonitor
-            {
-                public Joystick joystick;
-                static private DirectInput directInput;
-                private Dictionary<int, InputMonitor> inputMonitors = new Dictionary<int, InputMonitor>();
-
-                //public StickMonitor(SubscriptionRequest subReq)
-                //{
-                //    directInput = new DirectInput();
-                //    joystick = new Joystick(directInput, subReq.StickGuid);
-                //    joystick.Properties.BufferSize = 128;
-                //    joystick.Acquire();
-                //}
-
-                public void Add(SubscriptionRequest subReq)
-                {
-                    var inputId = GetInputIdentifier(subReq.InputType, subReq.InputId);
-                    if (!inputMonitors.ContainsKey(inputId))
-                    {
-                        inputMonitors.Add(inputId, new InputMonitor());
-                    }
-                    inputMonitors[inputId].Add(subReq);
-                }
-
-                private int GetInputIdentifier(InputType inputType, int inputId)
-                {
-                    return inputId;
-                }
-
             }
 
             public class InputMonitor
@@ -190,7 +178,6 @@ namespace InputWrappers
             {
                 private Dictionary<string, dynamic> subscriptionList = new Dictionary<string, dynamic>(StringComparer.OrdinalIgnoreCase);
 
-                //public void Add(string subscriberId, dynamic handler)
                 public void Add(SubscriptionRequest subReq)
                 {
                     subscriptionList.Add(subReq.SubscriberId, subReq.Handler);
