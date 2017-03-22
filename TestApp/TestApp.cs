@@ -17,7 +17,7 @@ namespace TestApp
             //{
             //    iw.DoSomething(pluginName);
             //}
-            iw.Subscribe("SharpDX_DirectInput", new Action<int>((value) => { Console.WriteLine("Blah: " + value); }));
+            iw.Subscribe("SharpDX_DirectInput", new Action<int>((value) => { Console.WriteLine("Value: " + value); }));
         }
     }
 }

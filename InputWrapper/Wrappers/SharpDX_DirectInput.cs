@@ -1,5 +1,7 @@
 ﻿using System.ComponentModel.Composition;
-using SharpDX.XInput;
+//using SharpDX.XInput;
+using SharpDX.DirectInput;
+using System;
 
 namespace InputWrappers
 {
@@ -9,7 +11,18 @@ namespace InputWrappers
         [ExportMetadata("Name", "SharpDX_DirectInput")]
         public class SharpDX_DirectInput : IInputWrapper
         {
+            public Joystick joystick;
+            static private DirectInput directInput;
+
             dynamic callback = null;
+
+            public SharpDX_DirectInput()
+            {
+                directInput = new DirectInput();
+                joystick = new Joystick(directInput, new Guid("83f38eb0-7433-11e6-8007-444553540000"));
+                joystick.Properties.BufferSize = 128;
+                joystick.Acquire();
+            }
 
             public int GetButtonCount()
             {
@@ -29,7 +42,17 @@ namespace InputWrappers
 
             public void Poll()
             {
-                callback(1);
+                joystick.Poll();
+                var data = joystick.GetBufferedData();
+                // Iterate each report
+                foreach (var state in data)
+                {
+                    if (state.Offset == JoystickOffset.X)
+                    {
+                        callback(state.Value);
+                    }
+                }
+                
             }
 
         }
