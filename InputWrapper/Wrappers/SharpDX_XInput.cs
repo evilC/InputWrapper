@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.Composition;
 using SharpDX.XInput;
+using InputWrapper;
 
 namespace InputWrappers
 {
@@ -21,9 +22,9 @@ namespace InputWrappers
                 return 10;
             }
 
-            public bool Subscribe(dynamic passedCallback)
+            public bool Subscribe(SubscriptionRequest subReq)
             {
-                Controller = new Controller(UserIndex.One);
+                //Controller = new Controller(UserIndex.One);
                 return true;
             }
 

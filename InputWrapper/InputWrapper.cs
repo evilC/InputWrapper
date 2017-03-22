@@ -1,11 +1,13 @@
-﻿namespace InputWrappers
+﻿using InputWrapper;
+
+namespace InputWrappers
 {
     public partial class Wrappers
     {
         public interface IInputWrapper
         {
             int GetButtonCount();
-            bool Subscribe(dynamic passedCallback);
+            bool Subscribe(SubscriptionRequest subReq);
             void Poll();
             bool HasSubscriptions();
         }
@@ -14,5 +16,9 @@
         {
             string Name { get; }
         }
+
+        // Allows categorization of input types
+        public enum InputType { AXIS, BUTTON, POV };
+
     }
 }

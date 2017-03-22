@@ -22,9 +22,9 @@ namespace InputWrapper
             Compose();
         }
 
-        public void Subscribe(string wrapperName, dynamic handler){
-            var wrapper = GetWrapper(wrapperName);
-            wrapper.Subscribe(handler);
+        public void Subscribe(SubscriptionRequest subReq){
+            var wrapper = GetWrapper(subReq.WrapperName);
+            wrapper.Subscribe(subReq);
             SetMonitorState();
         }
 
@@ -107,5 +107,14 @@ namespace InputWrapper
             CompositionContainer container = new CompositionContainer(catalog);
             container.SatisfyImportsOnce(this);
         }
+    }
+
+    public class SubscriptionRequest
+    {
+        public Wrappers.InputType InputType { get; set; }
+        public string WrapperName { get; set; }
+        public Guid StickGuid { get; set; }
+        public int InputId { get; set; }
+        public dynamic Handler { get; set; }
     }
 }
