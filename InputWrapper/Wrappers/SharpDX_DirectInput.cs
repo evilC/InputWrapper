@@ -17,7 +17,7 @@ namespace InputWrappers
             //public Joystick joystick;
             //static private DirectInput directInput;
 
-            private Dictionary<Guid, StickMonitor> MonitoredSticks = new Dictionary<Guid,StickMonitor>();
+            private Dictionary<Guid, SharpDX_DirectInputStickMonitor> MonitoredSticks = new Dictionary<Guid, SharpDX_DirectInputStickMonitor>();
 
             public SharpDX_DirectInput()
             {
@@ -32,7 +32,7 @@ namespace InputWrappers
                 //callback = passedCallback;
                 if (!MonitoredSticks.ContainsKey(subReq.StickGuid))
                 {
-                    MonitoredSticks.Add(subReq.StickGuid, new StickMonitor(subReq));
+                    MonitoredSticks.Add(subReq.StickGuid, new SharpDX_DirectInputStickMonitor(subReq));
                 }
                 MonitoredSticks[subReq.StickGuid].Add(subReq);
                 return true;
@@ -53,7 +53,7 @@ namespace InputWrappers
             }
 
             // Maps SharpDX "Offsets" (Input Identifiers) to both iinput type and input index (eg x axis to axis 1)
-            private static Dictionary<InputType, List<JoystickOffset>> inputMappings = new Dictionary<InputType, List<JoystickOffset>>(){
+            private static Dictionary<InputType, List<JoystickOffset>> directInputMappings = new Dictionary<InputType, List<JoystickOffset>>(){
                 {
                     InputType.AXIS, new List<JoystickOffset>()
                     {
@@ -105,30 +105,20 @@ namespace InputWrappers
                 }
             };
 
-
-            // Subscription Handling
-            public class StickMonitor
+            public class SharpDX_DirectInputStickMonitor : StickMonitor
             {
                 public Joystick joystick;
                 static private DirectInput directInput;
                 private Dictionary<JoystickOffset, InputMonitor> inputMonitors = new Dictionary<JoystickOffset, InputMonitor>();
 
-                public StickMonitor(SubscriptionRequest subReq)
+                public SharpDX_DirectInputStickMonitor(SubscriptionRequest subReq)
                 {
-                    directInput = new DirectInput();
-                    joystick = new Joystick(directInput, subReq.StickGuid);
-                    joystick.Properties.BufferSize = 128;
-                    joystick.Acquire();
+
                 }
 
-                public void Add(SubscriptionRequest subReq)
+                private JoystickOffset GetInputIdentifier(InputType inputType, int inputId)
                 {
-                    var inputMapping = inputMappings[subReq.InputType][subReq.InputId - 1];
-                    if (!inputMonitors.ContainsKey(inputMapping))
-                    {
-                        inputMonitors.Add(inputMapping, new InputMonitor());
-                    }
-                    inputMonitors[inputMapping].Add(subReq);
+                    return directInputMappings[inputType][inputId - 1];
                 }
 
                 public void Poll()
@@ -143,8 +133,39 @@ namespace InputWrappers
                             inputMonitors[state.Offset].ProcessPollResult(state.Value);
                         }
                     }
-
                 }
+            }
+
+            // Subscription Handling
+            public class StickMonitor
+            {
+                public Joystick joystick;
+                static private DirectInput directInput;
+                private Dictionary<int, InputMonitor> inputMonitors = new Dictionary<int, InputMonitor>();
+
+                //public StickMonitor(SubscriptionRequest subReq)
+                //{
+                //    directInput = new DirectInput();
+                //    joystick = new Joystick(directInput, subReq.StickGuid);
+                //    joystick.Properties.BufferSize = 128;
+                //    joystick.Acquire();
+                //}
+
+                public void Add(SubscriptionRequest subReq)
+                {
+                    var inputId = GetInputIdentifier(subReq.InputType, subReq.InputId);
+                    if (!inputMonitors.ContainsKey(inputId))
+                    {
+                        inputMonitors.Add(inputId, new InputMonitor());
+                    }
+                    inputMonitors[inputId].Add(subReq);
+                }
+
+                private int GetInputIdentifier(InputType inputType, int inputId)
+                {
+                    return inputId;
+                }
+
             }
 
             public class InputMonitor
