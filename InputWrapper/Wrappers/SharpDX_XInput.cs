@@ -17,11 +17,6 @@ namespace InputWrappers
 
             }
 
-            public int GetButtonCount()
-            {
-                return 10;
-            }
-
             public bool Subscribe(SubscriptionRequest subReq)
             {
                 //Controller = new Controller(UserIndex.One);

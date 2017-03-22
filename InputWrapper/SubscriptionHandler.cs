@@ -75,17 +75,17 @@ namespace InputWrapper
             return ret;
         }
 
-        public int DoSomething(string wrapperName)
-        {
-            var wrapper = GetWrapper(wrapperName);
-            if (wrapper == null)
-            {
-                return 0;
-            }
-            Console.WriteLine("Wrapper " + wrapperName + " has " + wrapper.GetButtonCount() + " buttons");
-            Console.ReadKey();
-            return 1;
-        }
+        //public int DoSomething(string wrapperName)
+        //{
+        //    var wrapper = GetWrapper(wrapperName);
+        //    if (wrapper == null)
+        //    {
+        //        return 0;
+        //    }
+        //    Console.WriteLine("Wrapper " + wrapperName + " has " + wrapper.GetButtonCount() + " buttons");
+        //    Console.ReadKey();
+        //    return 1;
+        //}
 
         public Wrappers.IInputWrapper GetWrapper(string wrapperName)
         {
@@ -111,7 +111,13 @@ namespace InputWrapper
 
     public class SubscriptionRequest
     {
+        public SubscriptionRequest()
+        {
+            SubscriberId = "0";
+        }
+
         public Wrappers.InputType InputType { get; set; }
+        public string SubscriberId { get; set; }
         public string WrapperName { get; set; }
         public Guid StickGuid { get; set; }
         public int InputId { get; set; }

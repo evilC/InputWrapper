@@ -6,7 +6,6 @@ namespace InputWrappers
     {
         public interface IInputWrapper
         {
-            int GetButtonCount();
             bool Subscribe(SubscriptionRequest subReq);
             void Poll();
             bool HasSubscriptions();

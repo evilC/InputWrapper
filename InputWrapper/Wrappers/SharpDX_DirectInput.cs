@@ -19,6 +19,39 @@ namespace InputWrappers
 
             private Dictionary<Guid, StickMonitor> MonitoredSticks = new Dictionary<Guid,StickMonitor>();
 
+            public SharpDX_DirectInput()
+            {
+                //directInput = new DirectInput();
+                //joystick = new Joystick(directInput, new Guid("83f38eb0-7433-11e6-8007-444553540000"));
+                //joystick.Properties.BufferSize = 128;
+                //joystick.Acquire();
+            }
+
+            public bool Subscribe(SubscriptionRequest subReq)
+            {
+                //callback = passedCallback;
+                if (!MonitoredSticks.ContainsKey(subReq.StickGuid))
+                {
+                    MonitoredSticks.Add(subReq.StickGuid, new StickMonitor(subReq));
+                }
+                MonitoredSticks[subReq.StickGuid].Add(subReq);
+                return true;
+            }
+
+            public bool HasSubscriptions()
+            {
+                return true;
+            }
+
+            public void Poll()
+            {
+                foreach (var monitoredStick in MonitoredSticks)
+                {
+                    monitoredStick.Value.Poll();
+                }
+                
+            }
+
             // Maps SharpDX "Offsets" (Input Identifiers) to both iinput type and input index (eg x axis to axis 1)
             private static Dictionary<InputType, List<JoystickOffset>> inputMappings = new Dictionary<InputType, List<JoystickOffset>>(){
                 {
@@ -72,70 +105,77 @@ namespace InputWrappers
                 }
             };
 
+
+            // Subscription Handling
             public class StickMonitor
             {
                 public Joystick joystick;
                 static private DirectInput directInput;
+                private Dictionary<JoystickOffset, InputMonitor> inputMonitors = new Dictionary<JoystickOffset, InputMonitor>();
 
-                SubscriptionRequest subReq;
-
-                public StickMonitor(SubscriptionRequest passedSubReq)
+                public StickMonitor(SubscriptionRequest subReq)
                 {
                     directInput = new DirectInput();
-                    joystick = new Joystick(directInput, passedSubReq.StickGuid);
+                    joystick = new Joystick(directInput, subReq.StickGuid);
                     joystick.Properties.BufferSize = 128;
-                    joystick.Acquire(); 
-                    subReq = passedSubReq;
+                    joystick.Acquire();
                 }
 
-                public void Poll(){
+                public void Add(SubscriptionRequest subReq)
+                {
+                    var inputMapping = inputMappings[subReq.InputType][subReq.InputId - 1];
+                    if (!inputMonitors.ContainsKey(inputMapping))
+                    {
+                        inputMonitors.Add(inputMapping, new InputMonitor());
+                    }
+                    inputMonitors[inputMapping].Add(subReq);
+                }
+
+                public void Poll()
+                {
                     joystick.Poll();
                     var data = joystick.GetBufferedData();
                     // Iterate each report
                     foreach (var state in data)
                     {
-                        if (state.Offset == inputMappings[subReq.InputType][subReq.InputId - 1])
+                        if (inputMonitors.ContainsKey(state.Offset))
                         {
-                            subReq.Handler(state.Value);
+                            inputMonitors[state.Offset].ProcessPollResult(state.Value);
                         }
                     }
 
                 }
             }
 
-            public SharpDX_DirectInput()
+            public class InputMonitor
             {
-                //directInput = new DirectInput();
-                //joystick = new Joystick(directInput, new Guid("83f38eb0-7433-11e6-8007-444553540000"));
-                //joystick.Properties.BufferSize = 128;
-                //joystick.Acquire();
-            }
+                List<dynamic> subscriptions = new List<dynamic>();
 
-            public int GetButtonCount()
-            {
-                return 128;
-            }
-
-            public bool Subscribe(SubscriptionRequest subReq)
-            {
-                //callback = passedCallback;
-                MonitoredSticks.Add(subReq.StickGuid, new StickMonitor(subReq));
-                return true;
-            }
-
-            public bool HasSubscriptions()
-            {
-                return true;
-            }
-
-            public void Poll()
-            {
-                foreach (var monitoredStick in MonitoredSticks)
+                public void Add(SubscriptionRequest subReq)
                 {
-                    monitoredStick.Value.Poll();
+                    subscriptions.Add(subReq.Handler);
                 }
-                
+
+                public void ProcessPollResult(int value)
+                {
+                    foreach (var subscription in subscriptions)
+                    {
+                        subscription(value);
+                    }
+                }
             }
+
+            public class Subscriptions
+            {
+                private Dictionary<string, dynamic> subscriptionList = new Dictionary<string, dynamic>(StringComparer.OrdinalIgnoreCase);
+
+                //public void Add(string subscriberId, dynamic handler)
+                public void Add(SubscriptionRequest subReq)
+                {
+                    subscriptionList.Add(subReq.SubscriberId, subReq.Handler);
+                }
+            }
+
 
         }
     }
