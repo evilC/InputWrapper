@@ -1,9 +1,9 @@
 ﻿using System.ComponentModel.Composition;
 using SharpDX.XInput;
 
-namespace InputWrapper
+namespace InputWrappers
 {
-    public partial class InputWrappers
+    public partial class Wrappers
     {
         [Export(typeof(IInputWrapper))]
         [ExportMetadata("Name", "SharpDX_XInput")]

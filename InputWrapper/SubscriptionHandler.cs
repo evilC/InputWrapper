@@ -5,13 +5,15 @@ using System.ComponentModel.Composition.Hosting;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using InputWrappers;
 
 namespace InputWrapper
 {
     public class SubscriptionHandler
     {
-        [ImportMany(typeof(InputWrappers.IInputWrapper))]
-        IEnumerable<Lazy<InputWrappers.IInputWrapper, InputWrappers.IInputWrapperMetadata>> _interfaceMeta;
+        [ImportMany(typeof(Wrappers.IInputWrapper))]
+        //IEnumerable<Lazy<Wrappers.IInputWrapper, Wrappers.IInputWrapperMetadata>> _interfaceMeta;
+        IEnumerable<Lazy<Wrappers.IInputWrapper, IDictionary<string, object>>> _interfaceMeta;
 
         public SubscriptionHandler()
         {
@@ -21,23 +23,18 @@ namespace InputWrapper
         public List<string> GetPluginNames()
         {
             List<string> ret = new List<string>();
-            foreach (Lazy<InputWrappers.IInputWrapper, InputWrappers.IInputWrapperMetadata> inputWrapper in _interfaceMeta)
+            foreach (Lazy<Wrappers.IInputWrapper, IDictionary<string, object>> inputWrapper in _interfaceMeta)
             {
-                ret.Add(inputWrapper.Metadata.Name);
+                ret.Add(inputWrapper.Metadata["Name"].ToString());
             }
             return ret;
         }
 
         public int DoSomething(string blah)
         {
-            foreach (Lazy<InputWrappers.IInputWrapper, InputWrappers.IInputWrapperMetadata> inputWrapper in _interfaceMeta)
-            {
-                if (inputWrapper.Metadata.Name == blah)
-                {
-                    Console.WriteLine(inputWrapper.Value.GetButtonCount());
-                }
-            }
-            //Console.ReadKey();
+            Lazy<Wrappers.IInputWrapper> wrapper = _interfaceMeta.Where(s => (string)s.Metadata["Name"] == blah).FirstOrDefault();
+            Console.WriteLine("Wrapper " + blah + " has " + wrapper.Value.GetButtonCount() + " buttons");
+            Console.ReadKey();
             return 1;
         }
 

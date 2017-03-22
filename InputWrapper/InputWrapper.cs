@@ -1,6 +1,6 @@
-﻿namespace InputWrapper
+﻿namespace InputWrappers
 {
-    public partial class InputWrappers
+    public partial class Wrappers
     {
         public interface IInputWrapper
         {
