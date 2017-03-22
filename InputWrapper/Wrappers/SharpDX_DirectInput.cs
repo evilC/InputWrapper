@@ -159,10 +159,23 @@ namespace InputWrappers
             public class InputMonitor
             {
                 List<dynamic> subscriptions = new List<dynamic>();
+                Dictionary<int, PovDirectionMonitor> povDirectionMonitors = new Dictionary<int, PovDirectionMonitor>();
 
                 public void Add(SubscriptionRequest subReq)
                 {
-                    subscriptions.Add(subReq.Handler);
+                    if (subReq.InputSubId == 0)
+                    {
+                        subscriptions.Add(subReq.Handler);
+                    }
+                    else
+                    {
+                        if (!povDirectionMonitors.ContainsKey(subReq.InputSubId))
+                        {
+                            povDirectionMonitors[subReq.InputSubId] = new PovDirectionMonitor(subReq);
+                        }
+                        povDirectionMonitors[subReq.InputSubId].Add(subReq);
+                    }
+                    
                 }
 
                 public void ProcessPollResult(int value)
@@ -171,6 +184,66 @@ namespace InputWrappers
                     {
                         subscription(value);
                     }
+
+                    foreach (var monitor in povDirectionMonitors)
+                    {
+                        monitor.Value.ProcessPollResult(value);
+                    }
+                }
+            }
+
+            class PovDirectionMonitor
+            {
+                List<dynamic> subscriptions = new List<dynamic>();
+                private bool state = false;
+                private int angle;
+                private int direction;
+                public int tolerance = 4500;
+
+                public PovDirectionMonitor(SubscriptionRequest subReq)
+                {
+                    direction = subReq.InputSubId;
+                    angle = (direction - 1) * 9000;
+                }
+
+                public void Add(SubscriptionRequest subReq)
+                {
+                    subscriptions.Add(subReq.Handler);
+                }
+
+                public void ProcessPollResult(int value)
+                {
+                    bool newState = ValueMatchesAngle(value);
+                    if (newState != state)
+                    {
+                        state = newState;
+                        var ret = Convert.ToInt32(state);
+                        foreach (var subscription in subscriptions)
+                        {
+                            subscription(ret);
+                        }
+                    }
+                }
+
+                private bool ValueMatchesAngle(int value)
+                {
+                    if (value == -1)
+                        return false;
+                    var diff = AngleDiff(value, angle);
+                    return value != -1 && AngleDiff(value, angle) <= tolerance;
+                }
+
+                private int AngleDiff(int a, int b)
+                {
+                    var result1 = a - b;
+                    if (result1 < 0)
+                        result1 += 36000;
+
+                    var result2 = b - a;
+                    if (result2 < 0)
+                        result2 += 36000;
+
+                    return Math.Min(result1, result2);
                 }
             }
 

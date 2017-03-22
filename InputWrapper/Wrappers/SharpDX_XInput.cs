@@ -74,8 +74,6 @@ namespace InputWrappers
                 private Controller controller;
 
 
-                //private int ControllerId;
-
                 public StickMonitor(SubscriptionRequest subReq)
                 {
                     monitors.Add(InputType.AXIS, axisMonitors);

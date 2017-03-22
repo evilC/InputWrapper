@@ -114,6 +114,7 @@ namespace InputWrapper
         public SubscriptionRequest()
         {
             SubscriberId = "0";
+            InputSubId = 0;
         }
 
         public Wrappers.InputType InputType { get; set; }
@@ -122,5 +123,7 @@ namespace InputWrapper
         public string StickId { get; set; }
         public int InputId { get; set; }
         public dynamic Handler { get; set; }
+        // used, eg, for DirectInput POV number
+        public int InputSubId { get; set; }
     }
 }
