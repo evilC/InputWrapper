@@ -30,12 +30,30 @@ namespace InputWrapper
             return ret;
         }
 
-        public int DoSomething(string blah)
+        public int DoSomething(string wrapperName)
         {
-            Lazy<Wrappers.IInputWrapper> wrapper = _interfaceMeta.Where(s => (string)s.Metadata["Name"] == blah).FirstOrDefault();
-            Console.WriteLine("Wrapper " + blah + " has " + wrapper.Value.GetButtonCount() + " buttons");
+            var wrapper = GetWrapper(wrapperName);
+            if (wrapper == null)
+            {
+                return 0;
+            }
+            Console.WriteLine("Wrapper " + wrapperName + " has " + wrapper.GetButtonCount() + " buttons");
             Console.ReadKey();
             return 1;
+        }
+
+        public Wrappers.IInputWrapper GetWrapper(string wrapperName)
+        {
+            Lazy<Wrappers.IInputWrapper> wrapper = null;
+            try
+            {
+                wrapper = _interfaceMeta.Where(s => (string)s.Metadata["Name"] == wrapperName).FirstOrDefault();
+                return wrapper.Value;
+            }
+            catch
+            {
+                return wrapper.Value;
+            }
         }
 
         private void Compose()
