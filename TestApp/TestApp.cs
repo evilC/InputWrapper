@@ -12,11 +12,12 @@ namespace TestApp
         static void Main(string[] args)
         {
             var iw = new SubscriptionHandler();
-            var plugins = iw.GetPluginNames();
-            foreach (var pluginName in plugins)
-            {
-                iw.DoSomething(pluginName);
-            }
+            //var plugins = iw.GetPluginNames();
+            //foreach (var pluginName in plugins)
+            //{
+            //    iw.DoSomething(pluginName);
+            //}
+            iw.Subscribe("SharpDX_DirectInput", new Action<int>((value) => { Console.WriteLine("Blah: " + value); }));
         }
     }
 }

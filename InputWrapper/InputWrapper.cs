@@ -5,7 +5,9 @@
         public interface IInputWrapper
         {
             int GetButtonCount();
-            bool Subscribe();
+            bool Subscribe(dynamic passedCallback);
+            void Poll();
+            bool HasSubscriptions();
         }
 
         public interface IInputWrapperMetadata

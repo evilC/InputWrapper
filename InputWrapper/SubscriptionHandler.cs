@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using InputWrappers;
+using System.Threading;
 
 namespace InputWrapper
 {
@@ -14,11 +15,55 @@ namespace InputWrapper
         [ImportMany(typeof(Wrappers.IInputWrapper))]
         //IEnumerable<Lazy<Wrappers.IInputWrapper, Wrappers.IInputWrapperMetadata>> _interfaceMeta;
         IEnumerable<Lazy<Wrappers.IInputWrapper, IDictionary<string, object>>> _interfaceMeta;
+        private bool threadRunning = false;
 
         public SubscriptionHandler()
         {
             Compose();
         }
+
+        public void Subscribe(string wrapperName, dynamic handler){
+            var wrapper = GetWrapper(wrapperName);
+            wrapper.Subscribe(handler);
+            SetMonitorState();
+        }
+
+        private void SetMonitorState()
+        {
+            int count = 0;
+            foreach (Lazy<Wrappers.IInputWrapper, IDictionary<string, object>> inputWrapper in _interfaceMeta)
+            {
+                if (inputWrapper.Value.HasSubscriptions())
+                {
+                    count++;
+                }
+            }
+
+            if (threadRunning && count == 0)
+                threadRunning = false;
+            else if (!threadRunning && count > 0)
+                MonitorSticks();
+        }
+
+        private void MonitorSticks()
+        {
+            var t = new Thread(new ThreadStart(() =>
+            {
+                threadRunning = true;
+                //Debug.WriteLine("InputWrapper| MonitorSticks starting");
+                while (threadRunning)
+                {
+                    foreach (Lazy<Wrappers.IInputWrapper, IDictionary<string, object>> inputWrapper in _interfaceMeta)
+                    {
+                        inputWrapper.Value.Poll();
+                    }
+                    Thread.Sleep(1);
+                }
+                //Debug.WriteLine("InputWrapper| MonitorSticks stopping");
+            }));
+            t.Start();
+        }
+
 
         public List<string> GetPluginNames()
         {

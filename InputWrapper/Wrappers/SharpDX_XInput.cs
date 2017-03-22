@@ -21,11 +21,22 @@ namespace InputWrappers
                 return 10;
             }
 
-            public bool Subscribe()
+            public bool Subscribe(dynamic passedCallback)
             {
                 Controller = new Controller(UserIndex.One);
                 return true;
             }
+
+            public bool HasSubscriptions()
+            {
+                return false;
+            }
+
+            public void Poll()
+            {
+
+            }
+
 
         }
     }
