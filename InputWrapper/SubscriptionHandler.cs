@@ -13,7 +13,6 @@ namespace InputWrapper
     public class SubscriptionHandler
     {
         [ImportMany(typeof(Wrappers.IInputWrapper))]
-        //IEnumerable<Lazy<Wrappers.IInputWrapper, Wrappers.IInputWrapperMetadata>> _interfaceMeta;
         IEnumerable<Lazy<Wrappers.IInputWrapper, IDictionary<string, object>>> _interfaceMeta;
         private bool threadRunning = false;
 
@@ -28,6 +27,7 @@ namespace InputWrapper
             SetMonitorState();
         }
 
+        #region Monitor Thread handling
         private void SetMonitorState()
         {
             int count = 0;
@@ -63,8 +63,9 @@ namespace InputWrapper
             }));
             t.Start();
         }
+        #endregion
 
-
+        #region Querying
         public List<string> GetPluginNames()
         {
             List<string> ret = new List<string>();
@@ -74,19 +75,9 @@ namespace InputWrapper
             }
             return ret;
         }
+        #endregion
 
-        //public int DoSomething(string wrapperName)
-        //{
-        //    var wrapper = GetWrapper(wrapperName);
-        //    if (wrapper == null)
-        //    {
-        //        return 0;
-        //    }
-        //    Console.WriteLine("Wrapper " + wrapperName + " has " + wrapper.GetButtonCount() + " buttons");
-        //    Console.ReadKey();
-        //    return 1;
-        //}
-
+        #region Wrapper handling
         public Wrappers.IInputWrapper GetWrapper(string wrapperName)
         {
             Lazy<Wrappers.IInputWrapper> wrapper = null;
@@ -107,8 +98,10 @@ namespace InputWrapper
             CompositionContainer container = new CompositionContainer(catalog);
             container.SatisfyImportsOnce(this);
         }
+        #endregion
     }
 
+    #region Public Classes
     public class SubscriptionRequest
     {
         public SubscriptionRequest()
@@ -126,4 +119,5 @@ namespace InputWrapper
         // used, eg, for DirectInput POV number
         public int InputSubId { get; set; }
     }
+    #endregion
 }

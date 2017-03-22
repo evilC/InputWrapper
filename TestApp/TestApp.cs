@@ -15,10 +15,6 @@ namespace TestApp
             //var guidStr = "83f38eb0-7433-11e6-8007-444553540000"; // evilc 1w
             var iw = new SubscriptionHandler();
             //var plugins = iw.GetPluginNames();
-            //foreach (var pluginName in plugins)
-            //{
-            //    iw.DoSomething(pluginName);
-            //}
 
             var handler1 = new Action<int>((value) => { Console.WriteLine("Value 1: " + value); });
             var sr1 = new SubscriptionRequest()

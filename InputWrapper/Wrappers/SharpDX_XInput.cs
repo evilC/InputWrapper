@@ -14,14 +14,9 @@ namespace InputWrappers
         {
             private Dictionary<int, StickMonitor> MonitoredSticks = new Dictionary<int, StickMonitor>();
 
-            public SharpDX_XInput()
-            {
-
-            }
-
+            #region Interface Methods
             public bool Subscribe(SubscriptionRequest subReq)
             {
-                //callback = passedCallback;
                 var stickId = Convert.ToInt32(subReq.StickId);
                 if (!MonitoredSticks.ContainsKey(stickId))
                 {
@@ -44,8 +39,11 @@ namespace InputWrappers
                 }
 
             }
+            #endregion
 
-            // Subscription Handling
+            #region Monitors
+
+            #region Stick
             public class StickMonitor
             {
                 private Dictionary<int, InputMonitor> axisMonitors = new Dictionary<int, InputMonitor>();
@@ -123,7 +121,9 @@ namespace InputWrappers
                     }
                 }
             }
+            #endregion
 
+            #region Input
             public class InputMonitor
             {
                 List<dynamic> subscriptions = new List<dynamic>();
@@ -146,7 +146,9 @@ namespace InputWrappers
                     }
                 }
             }
+            #endregion
 
+            #region Subscription
             public class Subscriptions
             {
                 private Dictionary<string, dynamic> subscriptionList = new Dictionary<string, dynamic>(StringComparer.OrdinalIgnoreCase);
@@ -155,7 +157,11 @@ namespace InputWrappers
                 {
                     subscriptionList.Add(subReq.SubscriberId, subReq.Handler);
                 }
+
             }
+            #endregion
+
+            #endregion
         }
     }
 }
