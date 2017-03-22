@@ -14,22 +14,17 @@ namespace InputWrappers
         [ExportMetadata("Name", "SharpDX_DirectInput")]
         public class SharpDX_DirectInput : IInputWrapper
         {
-            //public Joystick joystick;
-            //static private DirectInput directInput;
+            static private DirectInput directInput;
 
             private Dictionary<Guid, StickMonitor> MonitoredSticks = new Dictionary<Guid,StickMonitor>();
 
             public SharpDX_DirectInput()
             {
-                //directInput = new DirectInput();
-                //joystick = new Joystick(directInput, new Guid("83f38eb0-7433-11e6-8007-444553540000"));
-                //joystick.Properties.BufferSize = 128;
-                //joystick.Acquire();
+                directInput = new DirectInput();
             }
 
             public bool Subscribe(SubscriptionRequest subReq)
             {
-                //callback = passedCallback;
                 var guid = new Guid(subReq.StickId);
                 if (!MonitoredSticks.ContainsKey(guid))
                 {
@@ -111,14 +106,12 @@ namespace InputWrappers
             public class StickMonitor
             {
                 public Joystick joystick;
-                static private DirectInput directInput;
                 private Dictionary<JoystickOffset, InputMonitor> inputMonitors = new Dictionary<JoystickOffset, InputMonitor>();
 
                 private Guid stickGuid;
 
                 public StickMonitor(SubscriptionRequest subReq)
                 {
-                    directInput = new DirectInput();
                     stickGuid = new Guid(subReq.StickId);
                     joystick = new Joystick(directInput, stickGuid);
                     joystick.Properties.BufferSize = 128;
