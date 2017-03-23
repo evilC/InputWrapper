@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel.Composition;
-//using SharpDX.XInput;
 using SharpDX.DirectInput;
 using System;
 
@@ -34,11 +33,30 @@ public class SharpDX_DirectInput : IInputWrapper
 
     public bool UnSubscribe(SubscriptionRequest subReq)
     {
-        return true;
+        var stickId = new Guid(subReq.StickId);
+        if (MonitoredSticks.ContainsKey(stickId))
+        {
+            lock (MonitoredSticks)
+            {
+                var ret = MonitoredSticks[stickId].Remove(subReq);
+                if (!MonitoredSticks[stickId].HasSubscriptions())
+                {
+                    MonitoredSticks.Remove(stickId);
+                }
+            }
+        }
+        return false;
     }
 
     public bool HasSubscriptions()
     {
+        foreach (var monitor in MonitoredSticks)
+        {
+            if (monitor.Value.HasSubscriptions())
+            {
+                return true;
+            }
+        }
         return false;
     }
 
@@ -58,7 +76,7 @@ public class SharpDX_DirectInput : IInputWrapper
     public class StickMonitor
     {
         public Joystick joystick;
-        private Dictionary<JoystickOffset, InputMonitor> inputMonitors = new Dictionary<JoystickOffset, InputMonitor>();
+        private Dictionary<JoystickOffset, InputMonitor> monitors = new Dictionary<JoystickOffset, InputMonitor>();
 
         private Guid stickGuid;
 
@@ -73,16 +91,43 @@ public class SharpDX_DirectInput : IInputWrapper
         public void Add(SubscriptionRequest subReq)
         {
             var inputId = GetInputIdentifier(subReq.InputType, subReq.InputId);
-            if (!inputMonitors.ContainsKey(inputId))
+            if (!monitors.ContainsKey(inputId))
             {
-                inputMonitors.Add(inputId, new InputMonitor());
+                monitors.Add(inputId, new InputMonitor());
             }
-            inputMonitors[inputId].Add(subReq);
+            monitors[inputId].Add(subReq);
+        }
+
+        public bool Remove(SubscriptionRequest subReq)
+        {
+            var inputId = GetInputIdentifier(subReq.InputType, subReq.InputId);
+            if (monitors.ContainsKey(inputId))
+            {
+                var ret = monitors[inputId].Remove(subReq);
+                if (!monitors[inputId].HasSubscriptions())
+                {
+                    monitors.Remove(inputId);
+                }
+                return ret;
+            }
+            return false;
         }
 
         private JoystickOffset GetInputIdentifier(InputType inputType, int inputId)
         {
             return directInputMappings[inputType][inputId - 1];
+        }
+
+        public bool HasSubscriptions()
+        {
+            foreach (var monitor in monitors)
+            {
+                if (monitor.Value.HasSubscriptions())
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         public void Poll()
@@ -92,9 +137,9 @@ public class SharpDX_DirectInput : IInputWrapper
             // Iterate each report
             foreach (var state in data)
             {
-                if (inputMonitors.ContainsKey(state.Offset))
+                if (monitors.ContainsKey(state.Offset))
                 {
-                    inputMonitors[state.Offset].ProcessPollResult(state.Value);
+                    monitors[state.Offset].ProcessPollResult(state.Value);
                 }
             }
 
@@ -122,7 +167,47 @@ public class SharpDX_DirectInput : IInputWrapper
                 }
                 povDirectionMonitors[subReq.InputSubId].Add(subReq);
             }
+        }
 
+        public bool Remove(SubscriptionRequest subReq)
+        {
+            if (subReq.InputSubId == 0)
+            {
+                if (subscriptions.ContainsKey(subReq.SubscriberId))
+                {
+                    subscriptions.Remove(subReq.SubscriberId);
+                    return true;
+                }
+            }
+            else
+            {
+                if (povDirectionMonitors.ContainsKey(subReq.InputSubId))
+                {
+                    var ret = povDirectionMonitors[subReq.InputSubId].Remove(subReq);
+                    if (!povDirectionMonitors[subReq.InputSubId].HasSubscriptions())
+                    {
+                        povDirectionMonitors.Remove(subReq.InputSubId);
+                    }
+                    return ret;
+                }
+            }
+            return false;
+        }
+
+        public bool HasSubscriptions()
+        {
+            if (subscriptions.Count > 0)
+            {
+                return true;
+            }
+            foreach (var povDirection in povDirectionMonitors)
+            {
+                if (povDirection.Value.HasSubscriptions())
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         public void ProcessPollResult(int value)
@@ -158,6 +243,21 @@ public class SharpDX_DirectInput : IInputWrapper
         public void Add(SubscriptionRequest subReq)
         {
             subscriptions.Add(subReq.SubscriberId, subReq.Handler);
+        }
+
+        public bool Remove(SubscriptionRequest subReq)
+        {
+            if (subscriptions.ContainsKey(subReq.SubscriberId))
+            {
+                subscriptions.Remove(subReq.SubscriberId);
+                return true;
+            }
+            return false;
+        }
+
+        public bool HasSubscriptions()
+        {
+            return subscriptions.Count > 0;
         }
 
         public void ProcessPollResult(int value)

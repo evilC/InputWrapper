@@ -11,22 +11,22 @@ namespace TestApp
     {
         static void Main(string[] args)
         {
-            //var guidStr = "da2e2e00-19ea-11e6-8002-444553540000"; // evilc 1
-            var guidStr = "83f38eb0-7433-11e6-8007-444553540000"; // evilc 1w
+            var guidStr = "da2e2e00-19ea-11e6-8002-444553540000"; // evilc 1
+            //var guidStr = "83f38eb0-7433-11e6-8007-444553540000"; // evilc 1w
             var iw = new SubscriptionHandler();
             //var plugins = iw.GetPluginNames();
 
-            var handler1 = new Action<int>((value) => { Console.WriteLine("Value 1: " + value); });
-            var sr1 = new SubscriptionRequest()
-            {
-                InputType = InputWrappers.InputType.AXIS,
-                WrapperName = "SharpDX_XInput",
-                StickId = "1",
-                Handler = handler1,
-                InputId = 1
-            };
-            iw.Subscribe(sr1);
-            iw.UnSubscribe(sr1);
+            //var handler1 = new Action<int>((value) => { Console.WriteLine("Value 1: " + value); });
+            //var sr1 = new SubscriptionRequest()
+            //{
+            //    InputType = InputWrappers.InputType.AXIS,
+            //    WrapperName = "SharpDX_XInput",
+            //    StickId = "1",
+            //    Handler = handler1,
+            //    InputId = 1
+            //};
+            //iw.Subscribe(sr1);
+            //iw.UnSubscribe(sr1);
 
             //var handler2 = new Action<int>((value) => { Console.WriteLine("Value 2: " + value); });
             //var sr2 = new SubscriptionRequest()
@@ -50,17 +50,18 @@ namespace TestApp
             //};
             //iw.Subscribe(sr3);
 
-            //var handler4 = new Action<int>((value) => { Console.WriteLine("Value 4: " + value); });
-            //var sr4 = new SubscriptionRequest()
-            //{
-            //    InputType = InputWrappers.InputType.POV,
-            //    WrapperName = "SharpDX_DirectInput",
-            //    StickId = guidStr,
-            //    Handler = handler4,
-            //    InputId = 1,
-            //    InputSubId = 1
-            //};
-            //iw.Subscribe(sr4);
+            var handler4 = new Action<int>((value) => { Console.WriteLine("Value 4: " + value); });
+            var sr4 = new SubscriptionRequest()
+            {
+                InputType = InputWrappers.InputType.POV,
+                WrapperName = "SharpDX_DirectInput",
+                StickId = guidStr,
+                Handler = handler4,
+                InputId = 1,
+                InputSubId = 1
+            };
+            iw.Subscribe(sr4);
+            iw.UnSubscribe(sr4);
         }
     }
 }
