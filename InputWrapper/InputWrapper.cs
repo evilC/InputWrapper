@@ -2,7 +2,7 @@
 
 namespace InputWrappers
 {
-    public partial class Wrappers
+    public class InputWrapperBase
     {
         public interface IInputWrapper
         {

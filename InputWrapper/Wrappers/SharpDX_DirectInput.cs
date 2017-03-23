@@ -5,213 +5,210 @@ using SharpDX.DirectInput;
 using System;
 
 using InputWrapper;
+using static InputWrappers.InputWrapperBase;
 
-namespace InputWrappers
+[Export(typeof(IInputWrapper))]
+[ExportMetadata("Name", "SharpDX_DirectInput")]
+public class SharpDX_DirectInput : IInputWrapper
 {
-    public partial class Wrappers
+    static private DirectInput directInput;
+
+    private Dictionary<Guid, StickMonitor> MonitoredSticks = new Dictionary<Guid, StickMonitor>();
+
+    public SharpDX_DirectInput()
     {
-        [Export(typeof(IInputWrapper))]
-        [ExportMetadata("Name", "SharpDX_DirectInput")]
-        public class SharpDX_DirectInput : IInputWrapper
+        directInput = new DirectInput();
+    }
+
+    #region Interface Methods
+    public bool Subscribe(SubscriptionRequest subReq)
+    {
+        var guid = new Guid(subReq.StickId);
+        if (!MonitoredSticks.ContainsKey(guid))
         {
-            static private DirectInput directInput;
+            MonitoredSticks.Add(guid, new StickMonitor(subReq));
+        }
+        MonitoredSticks[guid].Add(subReq);
+        return true;
+    }
 
-            private Dictionary<Guid, StickMonitor> MonitoredSticks = new Dictionary<Guid,StickMonitor>();
+    public bool HasSubscriptions()
+    {
+        return true;
+    }
 
-            public SharpDX_DirectInput()
+    public void Poll()
+    {
+        foreach (var monitoredStick in MonitoredSticks)
+        {
+            monitoredStick.Value.Poll();
+        }
+
+    }
+    #endregion
+
+    #region Monitors
+
+    #region Stick
+    public class StickMonitor
+    {
+        public Joystick joystick;
+        private Dictionary<JoystickOffset, InputMonitor> inputMonitors = new Dictionary<JoystickOffset, InputMonitor>();
+
+        private Guid stickGuid;
+
+        public StickMonitor(SubscriptionRequest subReq)
+        {
+            stickGuid = new Guid(subReq.StickId);
+            joystick = new Joystick(directInput, stickGuid);
+            joystick.Properties.BufferSize = 128;
+            joystick.Acquire();
+        }
+
+        public void Add(SubscriptionRequest subReq)
+        {
+            var inputId = GetInputIdentifier(subReq.InputType, subReq.InputId);
+            if (!inputMonitors.ContainsKey(inputId))
             {
-                directInput = new DirectInput();
+                inputMonitors.Add(inputId, new InputMonitor());
+            }
+            inputMonitors[inputId].Add(subReq);
+        }
+
+        private JoystickOffset GetInputIdentifier(InputType inputType, int inputId)
+        {
+            return directInputMappings[inputType][inputId - 1];
+        }
+
+        public void Poll()
+        {
+            joystick.Poll();
+            var data = joystick.GetBufferedData();
+            // Iterate each report
+            foreach (var state in data)
+            {
+                if (inputMonitors.ContainsKey(state.Offset))
+                {
+                    inputMonitors[state.Offset].ProcessPollResult(state.Value);
+                }
             }
 
-            #region Interface Methods
-            public bool Subscribe(SubscriptionRequest subReq)
+        }
+    }
+    #endregion
+
+    #region Input
+    public class InputMonitor
+    {
+        List<dynamic> subscriptions = new List<dynamic>();
+        Dictionary<int, PovDirectionMonitor> povDirectionMonitors = new Dictionary<int, PovDirectionMonitor>();
+
+        public void Add(SubscriptionRequest subReq)
+        {
+            if (subReq.InputSubId == 0)
             {
-                var guid = new Guid(subReq.StickId);
-                if (!MonitoredSticks.ContainsKey(guid))
+                subscriptions.Add(subReq.Handler);
+            }
+            else
+            {
+                if (!povDirectionMonitors.ContainsKey(subReq.InputSubId))
                 {
-                    MonitoredSticks.Add(guid, new StickMonitor(subReq));
+                    povDirectionMonitors[subReq.InputSubId] = new PovDirectionMonitor(subReq);
                 }
-                MonitoredSticks[guid].Add(subReq);
-                return true;
+                povDirectionMonitors[subReq.InputSubId].Add(subReq);
             }
 
-            public bool HasSubscriptions()
+        }
+
+        public void ProcessPollResult(int value)
+        {
+            foreach (var subscription in subscriptions)
             {
-                return true;
+                subscription(value);
             }
 
-            public void Poll()
+            foreach (var monitor in povDirectionMonitors)
             {
-                foreach (var monitoredStick in MonitoredSticks)
-                {
-                    monitoredStick.Value.Poll();
-                }
-                
+                monitor.Value.ProcessPollResult(value);
             }
-            #endregion
+        }
+    }
+    #endregion
 
-            #region Monitors
+    #region POV Direction
+    class PovDirectionMonitor
+    {
+        List<dynamic> subscriptions = new List<dynamic>();
+        private bool state = false;
+        private int angle;
+        private int direction;
+        public int tolerance = 4500;
 
-            #region Stick
-            public class StickMonitor
+        public PovDirectionMonitor(SubscriptionRequest subReq)
+        {
+            direction = subReq.InputSubId;
+            angle = (direction - 1) * 9000;
+        }
+
+        public void Add(SubscriptionRequest subReq)
+        {
+            subscriptions.Add(subReq.Handler);
+        }
+
+        public void ProcessPollResult(int value)
+        {
+            bool newState = ValueMatchesAngle(value);
+            if (newState != state)
             {
-                public Joystick joystick;
-                private Dictionary<JoystickOffset, InputMonitor> inputMonitors = new Dictionary<JoystickOffset, InputMonitor>();
-
-                private Guid stickGuid;
-
-                public StickMonitor(SubscriptionRequest subReq)
+                state = newState;
+                var ret = Convert.ToInt32(state);
+                foreach (var subscription in subscriptions)
                 {
-                    stickGuid = new Guid(subReq.StickId);
-                    joystick = new Joystick(directInput, stickGuid);
-                    joystick.Properties.BufferSize = 128;
-                    joystick.Acquire();
-                }
-
-                public void Add(SubscriptionRequest subReq)
-                {
-                    var inputId = GetInputIdentifier(subReq.InputType, subReq.InputId);
-                    if (!inputMonitors.ContainsKey(inputId))
-                    {
-                        inputMonitors.Add(inputId, new InputMonitor());
-                    }
-                    inputMonitors[inputId].Add(subReq);
-                }
-
-                private JoystickOffset GetInputIdentifier(InputType inputType, int inputId)
-                {
-                    return directInputMappings[inputType][inputId - 1];
-                }
-
-                public void Poll()
-                {
-                    joystick.Poll();
-                    var data = joystick.GetBufferedData();
-                    // Iterate each report
-                    foreach (var state in data)
-                    {
-                        if (inputMonitors.ContainsKey(state.Offset))
-                        {
-                            inputMonitors[state.Offset].ProcessPollResult(state.Value);
-                        }
-                    }
-
+                    subscription(ret);
                 }
             }
-            #endregion
+        }
 
-            #region Input
-            public class InputMonitor
-            {
-                List<dynamic> subscriptions = new List<dynamic>();
-                Dictionary<int, PovDirectionMonitor> povDirectionMonitors = new Dictionary<int, PovDirectionMonitor>();
+        private bool ValueMatchesAngle(int value)
+        {
+            if (value == -1)
+                return false;
+            var diff = AngleDiff(value, angle);
+            return value != -1 && AngleDiff(value, angle) <= tolerance;
+        }
 
-                public void Add(SubscriptionRequest subReq)
-                {
-                    if (subReq.InputSubId == 0)
-                    {
-                        subscriptions.Add(subReq.Handler);
-                    }
-                    else
-                    {
-                        if (!povDirectionMonitors.ContainsKey(subReq.InputSubId))
-                        {
-                            povDirectionMonitors[subReq.InputSubId] = new PovDirectionMonitor(subReq);
-                        }
-                        povDirectionMonitors[subReq.InputSubId].Add(subReq);
-                    }
-                    
-                }
+        private int AngleDiff(int a, int b)
+        {
+            var result1 = a - b;
+            if (result1 < 0)
+                result1 += 36000;
 
-                public void ProcessPollResult(int value)
-                {
-                    foreach (var subscription in subscriptions)
-                    {
-                        subscription(value);
-                    }
+            var result2 = b - a;
+            if (result2 < 0)
+                result2 += 36000;
 
-                    foreach (var monitor in povDirectionMonitors)
-                    {
-                        monitor.Value.ProcessPollResult(value);
-                    }
-                }
-            }
-            #endregion
+            return Math.Min(result1, result2);
+        }
+    }
+    #endregion
 
-            #region POV Direction
-            class PovDirectionMonitor
-            {
-                List<dynamic> subscriptions = new List<dynamic>();
-                private bool state = false;
-                private int angle;
-                private int direction;
-                public int tolerance = 4500;
+    #region Subscription
+    public class Subscriptions
+    {
+        private Dictionary<string, dynamic> subscriptionList = new Dictionary<string, dynamic>(StringComparer.OrdinalIgnoreCase);
 
-                public PovDirectionMonitor(SubscriptionRequest subReq)
-                {
-                    direction = subReq.InputSubId;
-                    angle = (direction - 1) * 9000;
-                }
+        public void Add(SubscriptionRequest subReq)
+        {
+            subscriptionList.Add(subReq.SubscriberId, subReq.Handler);
+        }
+    }
+    #endregion
 
-                public void Add(SubscriptionRequest subReq)
-                {
-                    subscriptions.Add(subReq.Handler);
-                }
+    #endregion
 
-                public void ProcessPollResult(int value)
-                {
-                    bool newState = ValueMatchesAngle(value);
-                    if (newState != state)
-                    {
-                        state = newState;
-                        var ret = Convert.ToInt32(state);
-                        foreach (var subscription in subscriptions)
-                        {
-                            subscription(ret);
-                        }
-                    }
-                }
-
-                private bool ValueMatchesAngle(int value)
-                {
-                    if (value == -1)
-                        return false;
-                    var diff = AngleDiff(value, angle);
-                    return value != -1 && AngleDiff(value, angle) <= tolerance;
-                }
-
-                private int AngleDiff(int a, int b)
-                {
-                    var result1 = a - b;
-                    if (result1 < 0)
-                        result1 += 36000;
-
-                    var result2 = b - a;
-                    if (result2 < 0)
-                        result2 += 36000;
-
-                    return Math.Min(result1, result2);
-                }
-            }
-            #endregion
-
-            #region Subscription
-            public class Subscriptions
-            {
-                private Dictionary<string, dynamic> subscriptionList = new Dictionary<string, dynamic>(StringComparer.OrdinalIgnoreCase);
-
-                public void Add(SubscriptionRequest subReq)
-                {
-                    subscriptionList.Add(subReq.SubscriberId, subReq.Handler);
-                }
-            }
-            #endregion
-
-            #endregion
-
-            #region Lookup Tables
-            // Maps SharpDX "Offsets" (Input Identifiers) to both iinput type and input index (eg x axis to axis 1)
-            private static Dictionary<InputType, List<JoystickOffset>> directInputMappings = new Dictionary<InputType, List<JoystickOffset>>(){
+    #region Lookup Tables
+    // Maps SharpDX "Offsets" (Input Identifiers) to both iinput type and input index (eg x axis to axis 1)
+    private static Dictionary<InputType, List<JoystickOffset>> directInputMappings = new Dictionary<InputType, List<JoystickOffset>>(){
                 {
                     InputType.AXIS, new List<JoystickOffset>()
                     {
@@ -262,8 +259,6 @@ namespace InputWrappers
                     }
                 }
             };
-            #endregion
+    #endregion
 
-        }
-    }
 }
