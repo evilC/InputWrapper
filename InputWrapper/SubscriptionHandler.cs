@@ -12,8 +12,8 @@ namespace InputWrapper
 {
     public class SubscriptionHandler
     {
-        [ImportMany(typeof(InputWrapperBase.IInputWrapper))]
-        IEnumerable<Lazy<InputWrapperBase.IInputWrapper, IDictionary<string, object>>> _interfaceMeta;
+        [ImportMany(typeof(IInputWrapper))]
+        IEnumerable<Lazy<IInputWrapper, IDictionary<string, object>>> _interfaceMeta;
         private bool threadRunning = false;
 
         public SubscriptionHandler()
@@ -31,7 +31,7 @@ namespace InputWrapper
         private void SetMonitorState()
         {
             int count = 0;
-            foreach (Lazy<InputWrapperBase.IInputWrapper, IDictionary<string, object>> inputWrapper in _interfaceMeta)
+            foreach (Lazy<IInputWrapper, IDictionary<string, object>> inputWrapper in _interfaceMeta)
             {
                 if (inputWrapper.Value.HasSubscriptions())
                 {
@@ -53,7 +53,7 @@ namespace InputWrapper
                 //Debug.WriteLine("InputWrapper| MonitorSticks starting");
                 while (threadRunning)
                 {
-                    foreach (Lazy<InputWrapperBase.IInputWrapper, IDictionary<string, object>> inputWrapper in _interfaceMeta)
+                    foreach (Lazy<IInputWrapper, IDictionary<string, object>> inputWrapper in _interfaceMeta)
                     {
                         inputWrapper.Value.Poll();
                     }
@@ -69,7 +69,7 @@ namespace InputWrapper
         public List<string> GetPluginNames()
         {
             List<string> ret = new List<string>();
-            foreach (Lazy<InputWrapperBase.IInputWrapper, IDictionary<string, object>> inputWrapper in _interfaceMeta)
+            foreach (Lazy<IInputWrapper, IDictionary<string, object>> inputWrapper in _interfaceMeta)
             {
                 ret.Add(inputWrapper.Metadata["Name"].ToString());
             }
@@ -78,9 +78,9 @@ namespace InputWrapper
         #endregion
 
         #region Wrapper handling
-        public InputWrapperBase.IInputWrapper GetWrapper(string wrapperName)
+        public IInputWrapper GetWrapper(string wrapperName)
         {
-            Lazy<InputWrapperBase.IInputWrapper> wrapper = null;
+            Lazy<IInputWrapper> wrapper = null;
             try
             {
                 wrapper = _interfaceMeta.Where(s => (string)s.Metadata["Name"] == wrapperName).FirstOrDefault();
@@ -110,7 +110,7 @@ namespace InputWrapper
             InputSubId = 0;
         }
 
-        public InputWrapperBase.InputType InputType { get; set; }
+        public InputType InputType { get; set; }
         public string SubscriberId { get; set; }
         public string WrapperName { get; set; }
         public string StickId { get; set; }

@@ -5,7 +5,7 @@ using SharpDX.DirectInput;
 using System;
 
 using InputWrapper;
-using static InputWrappers.InputWrapperBase;
+using InputWrappers;
 
 [Export(typeof(IInputWrapper))]
 [ExportMetadata("Name", "SharpDX_DirectInput")]

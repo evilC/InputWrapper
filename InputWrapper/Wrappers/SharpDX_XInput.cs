@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using SharpDX.XInput;
 using InputWrapper;
-using static InputWrappers.InputWrapperBase;
+using InputWrappers;
 
 [Export(typeof(IInputWrapper))]
 [ExportMetadata("Name", "SharpDX_XInput")]
