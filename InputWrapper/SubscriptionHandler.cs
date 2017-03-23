@@ -27,6 +27,13 @@ namespace InputWrapper
             SetMonitorState();
         }
 
+        public void UnSubscribe(SubscriptionRequest subReq)
+        {
+            var wrapper = GetWrapper(subReq.WrapperName);
+            wrapper.UnSubscribe(subReq);
+            SetMonitorState();
+        }
+
         #region Monitor Thread handling
         private void SetMonitorState()
         {

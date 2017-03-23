@@ -5,6 +5,7 @@ namespace InputWrappers
     public interface IInputWrapper
     {
         bool Subscribe(SubscriptionRequest subReq);
+        bool UnSubscribe(SubscriptionRequest subReq);
         void Poll();
         bool HasSubscriptions();
     }

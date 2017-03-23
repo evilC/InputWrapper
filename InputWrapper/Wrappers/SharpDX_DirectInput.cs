@@ -32,9 +32,14 @@ public class SharpDX_DirectInput : IInputWrapper
         return true;
     }
 
-    public bool HasSubscriptions()
+    public bool UnSubscribe(SubscriptionRequest subReq)
     {
         return true;
+    }
+
+    public bool HasSubscriptions()
+    {
+        return false;
     }
 
     public void Poll()
@@ -100,14 +105,14 @@ public class SharpDX_DirectInput : IInputWrapper
     #region Input
     public class InputMonitor
     {
-        List<dynamic> subscriptions = new List<dynamic>();
+        Dictionary<string, dynamic> subscriptions = new Dictionary<string, dynamic>(StringComparer.OrdinalIgnoreCase);
         Dictionary<int, PovDirectionMonitor> povDirectionMonitors = new Dictionary<int, PovDirectionMonitor>();
 
         public void Add(SubscriptionRequest subReq)
         {
             if (subReq.InputSubId == 0)
             {
-                subscriptions.Add(subReq.Handler);
+                subscriptions.Add(subReq.SubscriberId, subReq.Handler);
             }
             else
             {
@@ -124,7 +129,7 @@ public class SharpDX_DirectInput : IInputWrapper
         {
             foreach (var subscription in subscriptions)
             {
-                subscription(value);
+                subscription.Value(value);
             }
 
             foreach (var monitor in povDirectionMonitors)
@@ -138,7 +143,7 @@ public class SharpDX_DirectInput : IInputWrapper
     #region POV Direction
     class PovDirectionMonitor
     {
-        List<dynamic> subscriptions = new List<dynamic>();
+        Dictionary<string, dynamic> subscriptions = new Dictionary<string, dynamic>(StringComparer.OrdinalIgnoreCase);
         private bool state = false;
         private int angle;
         private int direction;
@@ -152,7 +157,7 @@ public class SharpDX_DirectInput : IInputWrapper
 
         public void Add(SubscriptionRequest subReq)
         {
-            subscriptions.Add(subReq.Handler);
+            subscriptions.Add(subReq.SubscriberId, subReq.Handler);
         }
 
         public void ProcessPollResult(int value)
@@ -164,7 +169,7 @@ public class SharpDX_DirectInput : IInputWrapper
                 var ret = Convert.ToInt32(state);
                 foreach (var subscription in subscriptions)
                 {
-                    subscription(ret);
+                    subscription.Value(ret);
                 }
             }
         }
@@ -188,18 +193,6 @@ public class SharpDX_DirectInput : IInputWrapper
                 result2 += 36000;
 
             return Math.Min(result1, result2);
-        }
-    }
-    #endregion
-
-    #region Subscription
-    public class Subscriptions
-    {
-        private Dictionary<string, dynamic> subscriptionList = new Dictionary<string, dynamic>(StringComparer.OrdinalIgnoreCase);
-
-        public void Add(SubscriptionRequest subReq)
-        {
-            subscriptionList.Add(subReq.SubscriberId, subReq.Handler);
         }
     }
     #endregion

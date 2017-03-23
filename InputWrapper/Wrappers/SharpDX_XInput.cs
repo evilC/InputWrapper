@@ -15,26 +15,55 @@ public class SharpDX_XInput : IInputWrapper
     public bool Subscribe(SubscriptionRequest subReq)
     {
         var stickId = Convert.ToInt32(subReq.StickId);
-        if (!MonitoredSticks.ContainsKey(stickId))
+        lock (MonitoredSticks)
         {
-            MonitoredSticks.Add(stickId, new StickMonitor(subReq));
+            if (!MonitoredSticks.ContainsKey(stickId))
+            {
+                MonitoredSticks.Add(stickId, new StickMonitor(subReq));
+            }
+            MonitoredSticks[stickId].Add(subReq);
         }
-        MonitoredSticks[stickId].Add(subReq);
         return true;
+    }
+
+    public bool UnSubscribe(SubscriptionRequest subReq)
+    {
+        var stickId = Convert.ToInt32(subReq.StickId);
+        if (MonitoredSticks.ContainsKey(stickId))
+        {
+            lock (MonitoredSticks)
+            {
+                var ret = MonitoredSticks[stickId].Remove(subReq);
+                if (!MonitoredSticks[stickId].HasSubscriptions())
+                {
+                    MonitoredSticks.Remove(stickId);
+                }
+            }
+        }
+        return false;
     }
 
     public bool HasSubscriptions()
     {
-        return true;
+        foreach (var monitor in MonitoredSticks)
+        {
+            if (monitor.Value.HasSubscriptions())
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void Poll()
     {
-        foreach (var monitoredStick in MonitoredSticks)
+        lock (MonitoredSticks)
         {
-            monitoredStick.Value.Poll();
+            foreach (var monitoredStick in MonitoredSticks)
+            {
+                monitoredStick.Value.Poll();
+            }
         }
-
     }
     #endregion
 
@@ -89,6 +118,37 @@ public class SharpDX_XInput : IInputWrapper
             monitor[inputId].Add(subReq);
         }
 
+        public bool Remove(SubscriptionRequest subReq)
+        {
+            var inputId = GetInputIdentifier(subReq);
+            var monitor = monitors[subReq.InputType];
+            if (monitor.ContainsKey(inputId))
+            {
+                var ret = monitor[inputId].Remove(subReq);
+                if (!monitor[inputId].HasSubscriptions())
+                {
+                    monitor.Remove(inputId);
+                }
+                return ret;
+            }
+            return false;
+        }
+
+        public bool HasSubscriptions()
+        {
+            foreach (var monitorSet in monitors)
+            {
+                foreach (var monitor in monitorSet.Value)
+                {
+                    if (monitor.Value.HasSubscriptions())
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
         private int GetInputIdentifier(SubscriptionRequest subReq)
         {
             return Convert.ToInt32(subReq.InputId);
@@ -123,12 +183,27 @@ public class SharpDX_XInput : IInputWrapper
     #region Input
     public class InputMonitor
     {
-        List<dynamic> subscriptions = new List<dynamic>();
+        Dictionary<string, dynamic> subscriptions = new Dictionary<string, dynamic>(StringComparer.OrdinalIgnoreCase);
         private int currentValue = 0;
 
-        public void Add(SubscriptionRequest subReq)
+        public bool Add(SubscriptionRequest subReq)
         {
-            subscriptions.Add(subReq.Handler);
+            subscriptions.Add(subReq.SubscriberId, subReq.Handler);
+            return true;
+        }
+
+        public bool Remove(SubscriptionRequest subReq)
+        {
+            if (subscriptions.ContainsKey(subReq.SubscriberId))
+            {
+                return subscriptions.Remove(subReq.SubscriberId);
+            }
+            return false;
+        }
+
+        public bool HasSubscriptions()
+        {
+            return subscriptions.Count > 0;
         }
 
         public void ProcessPollResult(int value)
@@ -139,22 +214,9 @@ public class SharpDX_XInput : IInputWrapper
             currentValue = value;
             foreach (var subscription in subscriptions)
             {
-                subscription(value);
+                subscription.Value(value);
             }
         }
-    }
-    #endregion
-
-    #region Subscription
-    public class Subscriptions
-    {
-        private Dictionary<string, dynamic> subscriptionList = new Dictionary<string, dynamic>(StringComparer.OrdinalIgnoreCase);
-
-        public void Add(SubscriptionRequest subReq)
-        {
-            subscriptionList.Add(subReq.SubscriberId, subReq.Handler);
-        }
-
     }
     #endregion
 
