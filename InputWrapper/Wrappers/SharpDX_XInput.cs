@@ -21,9 +21,9 @@ public class SharpDX_XInput : IInputWrapper
             {
                 MonitoredSticks.Add(stickId, new StickMonitor(subReq));
             }
-            MonitoredSticks[stickId].Add(subReq);
+            return MonitoredSticks[stickId].Add(subReq);
         }
-        return true;
+        return false;
     }
 
     public bool UnSubscribe(SubscriptionRequest subReq)
@@ -38,6 +38,7 @@ public class SharpDX_XInput : IInputWrapper
                 {
                     MonitoredSticks.Remove(stickId);
                 }
+                return true;
             }
         }
         return false;
@@ -107,7 +108,7 @@ public class SharpDX_XInput : IInputWrapper
             controller = new Controller((UserIndex)(Convert.ToInt32(subReq.InputId)-1));
         }
 
-        public void Add(SubscriptionRequest subReq)
+        public bool Add(SubscriptionRequest subReq)
         {
             var inputId = GetInputIdentifier(subReq);
             var monitor = monitors[subReq.InputType];
@@ -115,7 +116,7 @@ public class SharpDX_XInput : IInputWrapper
             {
                 monitor.Add(inputId, new InputMonitor());
             }
-            monitor[inputId].Add(subReq);
+            return monitor[inputId].Add(subReq);
         }
 
         public bool Remove(SubscriptionRequest subReq)

@@ -27,8 +27,7 @@ public class SharpDX_DirectInput : IInputWrapper
         {
             MonitoredSticks.Add(guid, new StickMonitor(subReq));
         }
-        MonitoredSticks[guid].Add(subReq);
-        return true;
+        return MonitoredSticks[guid].Add(subReq);
     }
 
     public bool UnSubscribe(SubscriptionRequest subReq)
@@ -43,6 +42,7 @@ public class SharpDX_DirectInput : IInputWrapper
                 {
                     MonitoredSticks.Remove(stickId);
                 }
+                return true;
             }
         }
         return false;
@@ -88,14 +88,14 @@ public class SharpDX_DirectInput : IInputWrapper
             joystick.Acquire();
         }
 
-        public void Add(SubscriptionRequest subReq)
+        public bool Add(SubscriptionRequest subReq)
         {
             var inputId = GetInputIdentifier(subReq.InputType, subReq.InputId);
             if (!monitors.ContainsKey(inputId))
             {
                 monitors.Add(inputId, new InputMonitor());
             }
-            monitors[inputId].Add(subReq);
+            return monitors[inputId].Add(subReq);
         }
 
         public bool Remove(SubscriptionRequest subReq)
@@ -153,11 +153,12 @@ public class SharpDX_DirectInput : IInputWrapper
         Dictionary<string, dynamic> subscriptions = new Dictionary<string, dynamic>(StringComparer.OrdinalIgnoreCase);
         Dictionary<int, PovDirectionMonitor> povDirectionMonitors = new Dictionary<int, PovDirectionMonitor>();
 
-        public void Add(SubscriptionRequest subReq)
+        public bool Add(SubscriptionRequest subReq)
         {
             if (subReq.InputSubId == 0)
             {
                 subscriptions.Add(subReq.SubscriberId, subReq.Handler);
+                return true;
             }
             else
             {
@@ -165,7 +166,7 @@ public class SharpDX_DirectInput : IInputWrapper
                 {
                     povDirectionMonitors[subReq.InputSubId] = new PovDirectionMonitor(subReq);
                 }
-                povDirectionMonitors[subReq.InputSubId].Add(subReq);
+                return povDirectionMonitors[subReq.InputSubId].Add(subReq);
             }
         }
 
@@ -240,9 +241,10 @@ public class SharpDX_DirectInput : IInputWrapper
             angle = (direction - 1) * 9000;
         }
 
-        public void Add(SubscriptionRequest subReq)
+        public bool Add(SubscriptionRequest subReq)
         {
             subscriptions.Add(subReq.SubscriberId, subReq.Handler);
+            return true;
         }
 
         public bool Remove(SubscriptionRequest subReq)
